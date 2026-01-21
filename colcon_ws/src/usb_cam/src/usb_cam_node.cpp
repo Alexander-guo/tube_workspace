@@ -376,7 +376,18 @@ bool UsbCamNode::take_and_send_image()
   }
 
   // grab the image, pass image msg buffer to fill
-  m_camera->get_image(reinterpret_cast<char *>(&m_image_msg->data[0]));
+  try {
+    m_camera->get_image(reinterpret_cast<char *>(&m_image_msg->data[0]));
+  } catch (const std::exception & ex) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to get image: %s", ex.what());
+    return false;
+  } catch (const char * msg) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to get image: %s", msg);
+    return false;
+  } catch (...) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to get image: unknown error");
+    return false;
+  }
 
   auto stamp = m_camera->get_image_timestamp();
   m_image_msg->header.stamp.sec = stamp.tv_sec;
@@ -397,7 +408,18 @@ bool UsbCamNode::take_and_send_image_mjpeg()
   }
 
   // grab the image, pass image msg buffer to fill
-  m_camera->get_image(reinterpret_cast<char *>(&m_compressed_img_msg->data[0]));
+  try {
+    m_camera->get_image(reinterpret_cast<char *>(&m_compressed_img_msg->data[0]));
+  } catch (const std::exception & ex) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to get MJPEG image: %s", ex.what());
+    return false;
+  } catch (const char * msg) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to get MJPEG image: %s", msg);
+    return false;
+  } catch (...) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to get MJPEG image: unknown error");
+    return false;
+  }
 
   auto stamp = m_camera->get_image_timestamp();
   m_compressed_img_msg->header.stamp.sec = stamp.tv_sec;

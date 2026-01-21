@@ -185,7 +185,7 @@ public:
   {
     m_result = 0;
     // clear the picture
-    memset(dest, 0, m_avframe_device_size);
+    memset(dest, 0, m_avframe_rgb_size);
 
     auto avpacket = av_packet_alloc();
     av_new_packet(avpacket, bytes_used);
@@ -211,6 +211,28 @@ public:
       std::cerr << "Failed to recieve decoded frame from codec: ";
       print_av_error_string(m_result);
       return;
+    }
+
+    // If the decoder outputs a different pixel format than requested, rebuild sws context
+    if (m_avframe_device->format != m_last_device_format) {
+      m_last_device_format = m_avframe_device->format;
+
+      if (m_sws_context) {
+        sws_freeContext(m_sws_context);
+        m_sws_context = nullptr;
+      }
+
+      m_sws_context = sws_getContext(
+        m_avframe_device->width, m_avframe_device->height, (AVPixelFormat)m_avframe_device->format,
+        m_avframe_rgb->width, m_avframe_rgb->height, (AVPixelFormat)m_avframe_rgb->format, SWS_FAST_BILINEAR,
+        NULL, NULL, NULL);
+
+      m_avframe_device_size = static_cast<size_t>(
+        av_image_get_buffer_size(
+          (AVPixelFormat)m_avframe_device->format,
+          m_avframe_device->width,
+          m_avframe_device->height,
+          m_align));
     }
 
     sws_scale(
@@ -243,6 +265,7 @@ private:
   size_t m_avframe_rgb_size;
   char * m_averror_str;
   int m_result = 0;
+  int m_last_device_format = AV_PIX_FMT_NONE;
 
   const int m_align = 32;
 };

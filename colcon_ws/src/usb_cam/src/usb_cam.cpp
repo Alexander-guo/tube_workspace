@@ -636,12 +636,12 @@ void UsbCam::grab_image()
     }
 
     std::cerr << "Something went wrong, exiting..." << errno << std::endl;
-    throw errno;
+    return;
   }
 
   if (0 == r) {
     std::cerr << "Select timeout, exiting..." << std::endl;
-    throw "select timeout";
+    return;
   }
 
   read_frame();
