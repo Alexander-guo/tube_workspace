@@ -3,7 +3,7 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Imu, CompressedImage
-from imagenex831l_ros2.msg import RawRange, ProcessedRange
+# from imagenex831l_ros2.msg import RawRange, ProcessedRange
 from std_msgs.msg import Float32, String, Int32
 from microstrain_inertial_msgs.msg import HumanReadableStatus
 import datetime
@@ -18,15 +18,16 @@ class Rosbag(Node):
         super().__init__('rosbag')
 
         self.declare_parameter('device', 'null')
-        self.device = self.get_parameter('device').value
-
+        self.declare_parameter('data_path', '/home/afrl/data/')
+        self.device = self.get_parameter('device').value    # the same as the namespace
+        self.data_path = self.get_parameter('data_path').value
         print(self.device)
         
         self.bag_status = "Not Active"
 
         ct = datetime.datetime.now()
-        ct_str = ct.strftime("%Y-%m-%d-%H_%M_%S")
-        name = "/ws/data/"+ct_str
+        ct_str = ct.strftime(f"{self.device}_%Y-%m-%d-%H_%M_%S")
+        name = self.data_path + ct_str
         self.writer = rosbag2_py.SequentialWriter()
         storage_options = rosbag2_py._storage.StorageOptions(
             uri= name,
@@ -36,7 +37,7 @@ class Rosbag(Node):
 
         self.set_topics()
 
-        self.image_sub = self.create_subscription(CompressedImage, f'/{self.device}/flir_camera/image_raw/compressed', self.image_callback, 10)
+        self.image_sub = self.create_subscription(CompressedImage, f'/{self.device}/image_raw/compressed', self.image_callback, 10)
 
         self.depth_sub = self.create_subscription(Float32, f'/{self.device}/bar30/depth', self.depth_callback, 10)
 
@@ -44,18 +45,18 @@ class Rosbag(Node):
         
         self.temp_sub = self.create_subscription(Float32, f'/{self.device}/bar30/temperature', self.temp_callback, 10)
 
-        self.sonar_sub = self.create_subscription(ProcessedRange, f'/{self.device}/imagenex831l/range', self.sonar_callback, 10)
-        
         self.imu_sub = self.create_subscription(Imu, f'/{self.device}/imu/data', self.imu_callback, 10)
+
+        self.imu_raw_sub = self.create_subscription(Imu, f'/{self.device}/imu/data_raw', self.imu_raw_callback, 10)
 
         self.ekf_sub = self.create_subscription(HumanReadableStatus, f'/{self.device}/ekf/status', self.ekf_callback, 10)
 
-        self.sonar_raw_sub = self.create_subscription(RawRange, f'/{self.device}/imagenex831l/range_raw', self.sonar_raw_callback, 10)
-
-        self.tag_sub = self.create_subscription(Int32, f'/jetson_1/tag_id', self.tag_callback, 10)
+        self.tag_sub = self.create_subscription(Int32, f'/{self.device}/tag_id', self.tag_callback, 10)
 
         self.bag_pub = self.create_publisher(String, f'/{self.device}/bag', 10)
 
+        # self.sonar_sub = self.create_subscription(ProcessedRange, f'/{self.device}/imagenex831l/range', self.sonar_callback, 10)
+        # self.sonar_raw_sub = self.create_subscription(RawRange, f'/{self.device}/imagenex831l/range_raw', self.sonar_raw_callback, 10)
 
     def publish_bag(self):
         msg = String()
@@ -67,57 +68,70 @@ class Rosbag(Node):
         self.bag_status = "Active"
 
         topic_info_image = rosbag2_py._storage.TopicMetadata(
-            name=f'/{self.device}/flir_camera/image_raw/compressed',
+            id=0,
+            name=f'/{self.device}/image_raw/compressed',
             type='sensor_msgs/msg/CompressedImage',
             serialization_format='cdr')
         self.writer.create_topic(topic_info_image)
 
         topic_info_depth = rosbag2_py._storage.TopicMetadata(
+            id=0,
             name=f'/{self.device}/bar30/depth',
             type='std_msgs/msg/Float32',
             serialization_format='cdr')
         self.writer.create_topic(topic_info_depth)
 
         topic_info_pressure = rosbag2_py._storage.TopicMetadata(
+            id=0,
             name=f'/{self.device}/bar30/pressure',
             type='std_msgs/msg/Float32',
             serialization_format='cdr')
         self.writer.create_topic(topic_info_pressure)
         
         topic_info_temp = rosbag2_py._storage.TopicMetadata(
+            id=0,
             name=f'/{self.device}/bar30/temperature',
             type='std_msgs/msg/Float32',
             serialization_format='cdr')
         self.writer.create_topic(topic_info_temp)
 
-        topic_info_sonar = rosbag2_py._storage.TopicMetadata(
-            name=f'/{self.device}/imagenex831l/range',
-            type='imagenex831l_ros2/msg/ProcessedRange',
-            serialization_format='cdr')
-        self.writer.create_topic(topic_info_sonar)
-        
         topic_info_imu = rosbag2_py._storage.TopicMetadata(
+            id=0,
             name=f'/{self.device}/imu/data',
             type='sensor_msgs/msg/Imu',
             serialization_format='cdr')
         self.writer.create_topic(topic_info_imu)
 
+        topic_info_imu_raw = rosbag2_py._storage.TopicMetadata(
+            id=0,
+            name=f'/{self.device}/imu/data_raw',
+            type='sensor_msgs/msg/Imu',
+            serialization_format='cdr')
+        self.writer.create_topic(topic_info_imu_raw)
+
         topic_info_ekf = rosbag2_py._storage.TopicMetadata(
+            id=0,
             name=f'/{self.device}/ekf/status',
             type='microstrain_inertial_msgs/msg/HumanReadableStatus',
             serialization_format='cdr')
         self.writer.create_topic(topic_info_ekf)
 
-        topic_info_sonar_raw = rosbag2_py._storage.TopicMetadata(
-            name=f'/{self.device}/imagenex831l/range_raw',
-            type='imagenex831l_ros2/msg/RawRange',
-            serialization_format='cdr')
-        self.writer.create_topic(topic_info_sonar_raw)
+        # topic_info_sonar = rosbag2_py._storage.TopicMetadata(
+        #     name=f'/{self.device}/imagenex831l/range',
+        #     type='imagenex831l_ros2/msg/ProcessedRange',
+        #     serialization_format='cdr')
+        # self.writer.create_topic(topic_info_sonar)
+        
+        # topic_info_sonar_raw = rosbag2_py._storage.TopicMetadata(
+        #     name=f'/{self.device}/imagenex831l/range_raw',
+        #     type='imagenex831l_ros2/msg/RawRange',
+        #     serialization_format='cdr')
+        # self.writer.create_topic(topic_info_sonar_raw)
 
     def image_callback(self, msg):
         self.publish_bag()
         self.writer.write(
-            f'/{self.device}/flir_camera/image_raw/compressed',
+            f'/{self.device}/image_raw/compressed',
             serialize_message(msg),
             self.get_clock().now().nanoseconds)
 
@@ -139,15 +153,15 @@ class Rosbag(Node):
             serialize_message(msg),
             self.get_clock().now().nanoseconds)
 
-    def sonar_callback(self, msg):
-        self.writer.write(
-            f'/{self.device}/imagenex831l/range',
-            serialize_message(msg),
-            self.get_clock().now().nanoseconds)
-
     def imu_callback(self, msg):
         self.writer.write(
             f'/{self.device}/imu/data',
+            serialize_message(msg),
+            self.get_clock().now().nanoseconds)
+    
+    def imu_raw_callback(self, msg):
+        self.writer.write(
+            f'/{self.device}/imu/data_raw',
             serialize_message(msg),
             self.get_clock().now().nanoseconds)
 
@@ -157,11 +171,17 @@ class Rosbag(Node):
             serialize_message(msg),
             self.get_clock().now().nanoseconds)
 
-    def sonar_raw_callback(self, msg):
-        self.writer.write(
-            f'/{self.device}/imagenex831l/range_raw',
-            serialize_message(msg),
-            self.get_clock().now().nanoseconds)
+    # def sonar_callback(self, msg):
+    #     self.writer.write(
+    #         f'/{self.device}/imagenex831l/range',
+    #         serialize_message(msg),
+    #         self.get_clock().now().nanoseconds)
+
+    # def sonar_raw_callback(self, msg):
+    #     self.writer.write(
+    #         f'/{self.device}/imagenex831l/range_raw',
+    #         serialize_message(msg),
+    #         self.get_clock().now().nanoseconds)
     
     def tag_callback(self, msg):
         
@@ -178,8 +198,8 @@ class Rosbag(Node):
             if self.writer is None:
                 self.get_logger().info("Starting a new rosbag due to tag ID 2.")
                 ct = datetime.datetime.now()
-                ct_str = ct.strftime("%Y-%m-%d-%H_%M_%S")
-                name = "/ws/data/" + ct_str
+                ct_str = ct.strftime(f"{self.device}_%Y-%m-%d-%H_%M_%S")
+                name = self.data_path + ct_str
                 self.writer = rosbag2_py.SequentialWriter()
                 storage_options = rosbag2_py._storage.StorageOptions(
                     uri=name,

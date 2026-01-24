@@ -17,7 +17,7 @@ setup(
     zip_safe=True,
     maintainer='Lilian lamb',
     maintainer_email='lamblily90@gmail.com',
-    description='ROS 2 Launch for Tube0',
+    description='ROS 2 Launch for Tube',
     license='MIT',
     tests_require=['pytest'],
 )
