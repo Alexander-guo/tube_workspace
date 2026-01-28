@@ -1,0 +1,17 @@
+[Unit]
+Description=Tube ROS2 Bringup
+After=network.target
+
+[Service]
+Type=simple
+User=afrl
+Group=afrl
+Environment=HOME=/home/afrl
+Environment=ROS_LOG_DIR=/home/afrl/.ros/log
+WorkingDirectory=/home/afrl/tube_workspace/colcon_ws
+ExecStart=/bin/bash -lc "source /opt/ros/*/setup.bash && source /home/afrl/tube_workspace/colcon_ws/install/setup.bash && source /home/afrl/tube_workspace/.venv/bin/activate && ros2 launch ros2_bringup tube_0.launch.py"
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
