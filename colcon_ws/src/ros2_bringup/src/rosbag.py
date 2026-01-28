@@ -2,7 +2,7 @@
 
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Imu, CompressedImage
+from sensor_msgs.msg import Imu, CompressedImage, Image
 # from imagenex831l_ros2.msg import RawRange, ProcessedRange
 from std_msgs.msg import Float32, String, Int32
 from microstrain_inertial_msgs.msg import HumanReadableStatus
@@ -54,6 +54,8 @@ class Rosbag(Node):
         self.tag_sub = self.create_subscription(Int32, f'/{self.device}/tag_id', self.tag_callback, 10)
 
         self.bag_pub = self.create_publisher(String, f'/{self.device}/bag', 10)
+
+        self.bag_status_timer = self.create_timer(1.0, self.publish_bag)
 
         # self.sonar_sub = self.create_subscription(ProcessedRange, f'/{self.device}/imagenex831l/range', self.sonar_callback, 10)
         # self.sonar_raw_sub = self.create_subscription(RawRange, f'/{self.device}/imagenex831l/range_raw', self.sonar_raw_callback, 10)
@@ -129,43 +131,56 @@ class Rosbag(Node):
         # self.writer.create_topic(topic_info_sonar_raw)
 
     def image_callback(self, msg):
-        self.publish_bag()
+        if self.writer is None:
+            return
         self.writer.write(
             f'/{self.device}/image_raw/compressed',
             serialize_message(msg),
             self.get_clock().now().nanoseconds)
 
     def depth_callback(self, msg):
+        if self.writer is None:
+            return
         self.writer.write(
             f'/{self.device}/bar30/depth',
             serialize_message(msg),
             self.get_clock().now().nanoseconds)
 
     def pressure_callback(self, msg):
+        if self.writer is None:
+            return
         self.writer.write(
             f'/{self.device}/bar30/pressure',
             serialize_message(msg),
             self.get_clock().now().nanoseconds)
 
     def temp_callback(self, msg):
+        if self.writer is None:
+            return
         self.writer.write(
             f'/{self.device}/bar30/temperature',
             serialize_message(msg),
             self.get_clock().now().nanoseconds)
 
     def imu_callback(self, msg):
+        if self.writer is None:
+            return
         self.writer.write(
             f'/{self.device}/imu/data',
             serialize_message(msg),
             self.get_clock().now().nanoseconds)
     
     def imu_raw_callback(self, msg):
+        if self.writer is None:
+            return
         self.writer.write(
             f'/{self.device}/imu/data_raw',
             serialize_message(msg),
             self.get_clock().now().nanoseconds)
 
     def ekf_callback(self, msg):
+        if self.writer is None:
+            return
         self.writer.write(
             f'/{self.device}/ekf/status',
             serialize_message(msg),
