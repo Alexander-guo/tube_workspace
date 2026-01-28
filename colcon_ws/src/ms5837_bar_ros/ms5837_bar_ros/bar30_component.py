@@ -14,9 +14,9 @@ import time
 
 
 class BarComponentr:
-    def __init__(self):
+    def __init__(self, bus=1):
         
-        self.sensor = ms5837.MS5837_30BA() # Default I2C bus is 1 (Raspberry Pi 3)
+        self.sensor = ms5837.MS5837_30BA(bus) # Default I2C bus is 1 (Raspberry Pi 3)
         #self.sensor = ms5837.MS5837_30BA(0) # Specify I2C bus
         #self.sensor = ms5837.MS5837_02BA()
         #self.sensor = ms5837.MS5837_02BA(0)
@@ -24,25 +24,25 @@ class BarComponentr:
 
         # We must initialize the self.sensor before reading it
         if not self.sensor.init():
-                print("Sensor could not be initialized")
-                exit(1)
+            print("Sensor could not be initialized")
+            exit(1)
 
         # We have to read values from self.sensor to update pressure and temperature
         if not self.sensor.read():
-                print("Sensor read failed!")
-                exit(1)
+            print("Sensor read failed!")
+            exit(1)
 
         print("Pressure: {} atm {} Torr {} psi".format(
-                round( self.sensor.pressure(ms5837.UNITS_atm), 2),
-                round( self.sensor.pressure(ms5837.UNITS_Torr), 2),
-                round( self.sensor.pressure(ms5837.UNITS_psi), 2),
+            round(self.sensor.pressure(ms5837.UNITS_atm), 2),
+            round(self.sensor.pressure(ms5837.UNITS_Torr), 2),
+            round(self.sensor.pressure(ms5837.UNITS_psi), 2),
         ))
 
 
         print("Temperature: {} C {} F {} K".format(
-                round( self.sensor.temperature(ms5837.UNITS_Centigrade), 2),
-                round( self.sensor.temperature(ms5837.UNITS_Farenheit), 2),
-                round( self.sensor.temperature(ms5837.UNITS_Kelvin), 2),
+            round(self.sensor.temperature(ms5837.UNITS_Centigrade), 2),
+            round(self.sensor.temperature(ms5837.UNITS_Farenheit), 2),
+            round(self.sensor.temperature(ms5837.UNITS_Kelvin), 2),
         ))
 
         self.freshwaterDepth = self.sensor.depth() # default is freshwater
@@ -57,12 +57,12 @@ class BarComponentr:
         self.init_salt_depth = self.saltwaterDepth - self.ajust_depth
 
         print("Depth: {} m (freshwater) {} m (saltwater)".format(
-                round(self.init_fresh_depth , 3),
-                round(self.init_salt_depth , 3),
+             round(self.init_fresh_depth , 3), 
+             round(self.init_salt_depth , 3),
         ))
 
         # fluidDensity doesn't matter for altitude() (always MSL air density)
-        print("MSL Relative Altitude: {} m".format( self.sensor.altitude() )) # relative to Mean Sea Level pressure in air
+        print("MSL Relative Altitude: {} m".format(self.sensor.altitude())) # relative to Mean Sea Level pressure in air
 
         time.sleep(1)
 
@@ -134,7 +134,9 @@ class BarNode(Node):
         timer_period = 0.02  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
-        self.ms5837_data = BarComponentr()
+        self.declare_parameter('i2c_bus', 1)
+        i2c_bus = int(self.get_parameter('i2c_bus').value)
+        self.ms5837_data = BarComponentr(i2c_bus)
 
         self.msg_pressure = Float32()
         self.msg_temp = Float32()
