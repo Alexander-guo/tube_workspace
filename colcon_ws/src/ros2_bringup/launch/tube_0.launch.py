@@ -197,6 +197,16 @@ def generate_launch_description():
         parameters=[{'device': device, 'data_path': data_path}]
     )
 
+    tag_id_bridge_node = Node(
+        package='ros2_bringup',
+        executable='tag_id_bridge.py',
+        namespace=namespace,
+        parameters=[{
+            'in_topic': 'aruco_markers',
+            'out_topic': 'tag_id'
+        }]
+    )
+
     # Return the LaunchDescription
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -205,6 +215,7 @@ def generate_launch_description():
             description='ROS namespace for all nodes in this launch.'
         ),
         included_tag_launch,
+        tag_id_bridge_node,
         # included_cam_launch,
         cam_node,
         rosbag_node,

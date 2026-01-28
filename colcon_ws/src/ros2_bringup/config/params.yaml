@@ -2,7 +2,7 @@ tube0:
   ros_parameters:
     device: 'tube0' # same as the namespace 
     data_path: '/home/afrl/data/'  # path to save rosbags
-    cam_topic: '/tube0/image_raw/compressed'           # sets topic gui displays & tag_node subscribes to 
+    cam_topic: '/tube0/image_raw'           # sets topic gui displays & tag_node subscribes to 
     cam_info_topic: '/tube0/camera_info'
     # sonar: 'false'                                    # sonar launch boolean
 
