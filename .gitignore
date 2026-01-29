@@ -1,0 +1,8 @@
+# Ignore build, install, and log directories anywhere in the tree
+**/build/
+**/build/**
+**/install/
+**/install/**
+**/log/
+**/log/**
+.venv/
