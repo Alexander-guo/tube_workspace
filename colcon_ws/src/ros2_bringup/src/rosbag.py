@@ -11,6 +11,9 @@ import rosbag2_py
 from rclpy.serialization import serialize_message
 from example_interfaces.srv import Trigger
 
+# Services
+from std_srvs.srv import Empty
+
 class Rosbag(Node):
 
     def __init__(self):
@@ -59,6 +62,38 @@ class Rosbag(Node):
 
         # self.sonar_sub = self.create_subscription(ProcessedRange, f'/{self.device}/imagenex831l/range', self.sonar_callback, 10)
         # self.sonar_raw_sub = self.create_subscription(RawRange, f'/{self.device}/imagenex831l/range_raw', self.sonar_raw_callback, 10)
+
+        # Two new services for start/stop recording from aqua.
+        self.create_service(Empty, "rosbag/start_recording", self.start_recording)
+        self.create_service(Empty, "rosbag/stop_recording", self.stop_recording)
+
+    def stop_recording(self, req, res):
+        if self.writer:
+            self.get_logger().info("Closing rosbag due to tag ID 1.")
+            self.writer.close()
+            self.bag_status = "Not Active"
+            self.writer = None
+        else:
+            self.get_logger().info("No rosbag is currently running.")
+        return res
+
+    def start_recording(self, req, res):
+        if self.writer is None:
+            self.get_logger().info("Starting a new rosbag due to tag ID 2.")
+            ct = datetime.datetime.now()
+            ct_str = ct.strftime(f"{self.device}_%Y-%m-%d-%H_%M_%S")
+            name = self.data_path + ct_str
+            self.writer = rosbag2_py.SequentialWriter()
+            storage_options = rosbag2_py._storage.StorageOptions(
+                uri=name,
+                storage_id='sqlite3'
+            )
+            converter_options = rosbag2_py._storage.ConverterOptions('', '')
+            self.writer.open(storage_options, converter_options)
+            self.set_topics()
+        else:
+            self.get_logger().info("A rosbag is already running.")
+        return res
 
     def publish_bag(self):
         msg = String()
