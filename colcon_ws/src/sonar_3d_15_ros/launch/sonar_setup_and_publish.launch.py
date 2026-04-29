@@ -19,6 +19,10 @@ def _build_node(context, *args, **kwargs):
     if multicast_group:
         node_args += ["--multicast-group", multicast_group]
 
+    interface_ip = LaunchConfiguration("interface").perform(context)
+    if interface_ip:
+        node_args += ["--interface", interface_ip]
+
     port = LaunchConfiguration("port").perform(context)
     if port:
         node_args += ["--port", port]
@@ -27,13 +31,10 @@ def _build_node(context, *args, **kwargs):
     if topic:
         node_args += ["--topic", topic]
 
-    file_path = LaunchConfiguration("file").perform(context)
-    if file_path:
-        node_args += ["--file", file_path]
+    output_dir = LaunchConfiguration("output-file-dir").perform(context)
+    if output_dir:
+        node_args += ["--output-file-dir", output_dir]
 
-    index = LaunchConfiguration("index").perform(context)
-    if index:
-        node_args += ["--index", index]
 
     return [
         Node(
@@ -49,13 +50,18 @@ def _build_node(context, *args, **kwargs):
 def generate_launch_description():
     return LaunchDescription(
         [
-            DeclareLaunchArgument("ip", default_value="192.168.2.96", description="IP address of the sonar"),
-            DeclareLaunchArgument("speed", default_value=1500, description="Speed of sound in m/s"),
-            DeclareLaunchArgument("acoustics", default_value=True, description="enable/disable"),
+            DeclareLaunchArgument("ip", default_value="192.168.194.96", description="IP address of the sonar"),
+            DeclareLaunchArgument("speed", default_value="1500", description="Speed of sound in m/s"),
+            DeclareLaunchArgument("acoustics", default_value="true", description="enable/disable"),
             DeclareLaunchArgument(
                 "multicast_group",
                 default_value="224.0.0.96",
                 description="Multicast group to listen to",
+            ),
+            DeclareLaunchArgument(
+                "interface",
+                default_value="192.168.194.90",
+                description="Local interface IP for multicast (e.g., 192.168.194.10)",
             ),
             DeclareLaunchArgument(
                 "port",
@@ -68,7 +74,6 @@ def generate_launch_description():
                 description="ROS 2 topic for raw sonar bytes",
             ),
             DeclareLaunchArgument("output-file-dir", default_value="", description="Output file directory for received data"),
-            # DeclareLaunchArgument("index", default_value="", description="Index of filename"),
             OpaqueFunction(function=_build_node),
         ]
     )

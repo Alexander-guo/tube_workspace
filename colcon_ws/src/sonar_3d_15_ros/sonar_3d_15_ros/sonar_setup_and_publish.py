@@ -57,6 +57,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help=f"Multicast group to listen to (default: {MULTICAST_GROUP}).",
     )
     parser.add_argument(
+        "--interface",
+        type=str,
+        default="",
+        help="Local interface IP for multicast (e.g., 192.168.194.10).",
+    )
+    parser.add_argument(
         "--port",
         type=int,
         default=PORT,
@@ -73,7 +79,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 def main(args=None) -> None:
     parser = build_arg_parser()
-    parsed_args = parser.parse_args(remove_ros_args(args))
+    clean_args = remove_ros_args(args)
+    if clean_args is None:
+        clean_args = []
+    if clean_args and (clean_args[0].endswith("sonar_3d_setup_publish") or clean_args[0].endswith("sonar_setup_and_publish.py")):
+        clean_args = clean_args[1:]
+    parsed_args = parser.parse_args(clean_args)
 
     about = get_about(parsed_args.ip)
     print(f"About:\n{about}")
@@ -109,6 +120,7 @@ def main(args=None) -> None:
         multicast_group=parsed_args.multicast_group,
         port=parsed_args.port,
         topic=parsed_args.topic,
+        interface_ip=parsed_args.interface or None,
     )
 
     try:

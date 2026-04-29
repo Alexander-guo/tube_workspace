@@ -27,6 +27,7 @@ class SonarMulticastReceiver(Node):
         multicast_group: str,
         port: int,
         topic: str,
+        interface_ip: str | None = None,
     ) -> None:
         super().__init__("sonar_3d_receiver")
         self.sonar_ip = sonar_ip
@@ -34,6 +35,7 @@ class SonarMulticastReceiver(Node):
         self.multicast_group = multicast_group
         self.port = port
         self.publisher = self.create_publisher(UInt8MultiArray, topic, 10)
+        self.interface_ip = interface_ip
 
     def receive_multicast(self) -> None:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -41,8 +43,18 @@ class SonarMulticastReceiver(Node):
         sock.bind(("", self.port))
 
         group = socket.inet_aton(self.multicast_group)
-        mreq = struct.pack("4sL", group, socket.INADDR_ANY)
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        interface_ip = self.interface_ip or "0.0.0.0"
+        try:
+            mreq = struct.pack("4s4s", group, socket.inet_aton(interface_ip))
+            sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        except OSError as exc:
+            if exc.errno == 19:  # No such device
+                self.get_logger().error(
+                    "Failed to join multicast group. "
+                    "Specify the local interface IP using --interface. "
+                    f"Tried interface {interface_ip}."
+                )
+            raise
 
         self.get_logger().info(
             f"Listening for Sonar 3D-15 RIP1 packets on {self.multicast_group}:{self.port}"
@@ -111,6 +123,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help=f"Multicast group to listen to (default: {MULTICAST_GROUP}).",
     )
     parser.add_argument(
+        "--interface",
+        type=str,
+        default="",
+        help="Local interface IP for multicast (e.g., 192.168.194.10).",
+    )
+    parser.add_argument(
         "--port",
         type=int,
         default=PORT,
@@ -141,6 +159,7 @@ def main(args=None) -> None:
         multicast_group=parsed_args.multicast_group,
         port=parsed_args.port,
         topic=parsed_args.topic,
+        interface_ip=parsed_args.interface or None,
     )
 
     try:
