@@ -90,7 +90,7 @@ def receive_multicast(filename: str):
 
 
 if __name__ == "__main__":
-    rospy.init_node('sona_3d')
+    rospy.init_node('sonar_3d')
     pub_raw = rospy.Publisher('sonar_3d/raw_data', String, queue_size=10)
     pub_raw2 = rospy.Publisher('sonar_3d/raw_data_multibyte', UInt8MultiArray, queue_size=10)
 

@@ -4,7 +4,7 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Imu, CompressedImage, Image
 # from imagenex831l_ros2.msg import RawRange, ProcessedRange
-from std_msgs.msg import Float32, String, Int32
+from std_msgs.msg import Float32, String, Int32, UInt8MultiArray
 from microstrain_inertial_msgs.msg import HumanReadableStatus
 import datetime
 import rosbag2_py
@@ -58,7 +58,10 @@ class Rosbag(Node):
 
         self.bag_pub = self.create_publisher(String, f'/{self.device}/bag', 10)
 
+        self.sonar3d_raw_sub = self.create_subscription(UInt8MultiArray, f'/{self.device}/sonar_3d/raw_data_multibyte', self.sonar3d_raw_callback, 10)
+
         self.bag_status_timer = self.create_timer(1.0, self.publish_bag)
+
 
         # self.sonar_sub = self.create_subscription(ProcessedRange, f'/{self.device}/imagenex831l/range', self.sonar_callback, 10)
         # self.sonar_raw_sub = self.create_subscription(RawRange, f'/{self.device}/imagenex831l/range_raw', self.sonar_raw_callback, 10)
@@ -153,6 +156,13 @@ class Rosbag(Node):
             serialization_format='cdr')
         self.writer.create_topic(topic_info_ekf)
 
+        topic_info_sonar3d_raw = rosbag2_py._storage.TopicMetadata(
+            id=0,
+            name=f'/{self.device}/sonar_3d/raw_data_multibyte',
+            type='std_msgs/msg/UInt8MultiArray',
+            serialization_format='cdr')
+        self.writer.create_topic(topic_info_sonar3d_raw)
+
         # topic_info_sonar = rosbag2_py._storage.TopicMetadata(
         #     name=f'/{self.device}/imagenex831l/range',
         #     type='imagenex831l_ros2/msg/ProcessedRange',
@@ -218,6 +228,14 @@ class Rosbag(Node):
             return
         self.writer.write(
             f'/{self.device}/ekf/status',
+            serialize_message(msg),
+            self.get_clock().now().nanoseconds)
+
+    def sonar3d_raw_callback(self, msg):
+        if self.writer is None:
+            return
+        self.writer.write(
+            f'/{self.device}/sonar_3d/raw_data_multibyte',
             serialize_message(msg),
             self.get_clock().now().nanoseconds)
 

@@ -8,6 +8,7 @@ from launch_ros.actions import Node, PushRosNamespace
 from launch.actions import IncludeLaunchDescription, ExecuteProcess, OpaqueFunction, GroupAction, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
+from launch.conditions import IfCondition
 
 def bag_exists(time_cap):
     file_path = '/home/afrl/data/'
@@ -34,8 +35,10 @@ def generate_launch_description():
     data_path = launch_params["tube0"]['ros_parameters']['data_path']
     cam_topic = launch_params["tube0"]['ros_parameters']['cam_topic']
     cam_info_topic = launch_params["tube0"]['ros_parameters']['cam_info_topic']
+    enable_sonar = launch_params["tube0"]['ros_parameters']['enable_sonar']
+    sonar_speed = launch_params["tube0"]['ros_parameters']['sonar_speed']
+    sonar_acoustics = launch_params["tube0"]['ros_parameters']['sonar_acoustics']
     # serial = launch_params["tube0"]['ros_parameters']['serial']
-    # sonar = launch_params["tube0"]['ros_parameters']['sonar']
     #pixel_format = launch_params["tube0"]['ros_parameters']['pixel_format']
     # camera_type = launch_params["tube0"]['ros_parameters']['camera_type']
     # debug = launch_params["tube0"]['ros_parameters']['debug']
@@ -86,6 +89,7 @@ def generate_launch_description():
     # screen_dir = get_package_share_directory('custom_guyi')
     cam_dir = get_package_share_directory('usb_cam')
     tag_dir = get_package_share_directory('ros2_aruco')
+    sonar_dir = get_package_share_directory('sonar_3d_15_ros')
 
     usb_cam_params = os.path.join(
         cam_dir,
@@ -191,6 +195,22 @@ def generate_launch_description():
         ]
     )
 
+    included_sonar_launch = GroupAction(
+        actions=[
+            PushRosNamespace(namespace),
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    os.path.join(sonar_dir, 'launch', 'sonar_setup_and_publish.launch.py')
+                ),
+                launch_arguments={
+                    'speed': sonar_speed,
+                    'acoustics': sonar_acoustics,
+                }.items()
+            )
+        ],
+        condition=IfCondition(str(enable_sonar).lower())
+    ) 
+
     rosbag_node = Node(
         package='ros2_bringup',
         executable='rosbag.py',
@@ -221,7 +241,7 @@ def generate_launch_description():
         rosbag_node,
         depth_sensor_node,
         # base_to_range,
-        included_imu_launch
-        # included_sonar_launch,
+        included_imu_launch,
+        included_sonar_launch
         # included_screen_launch
     ])

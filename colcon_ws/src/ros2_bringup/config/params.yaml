@@ -4,7 +4,9 @@ tube0:
     data_path: '/home/afrl/data/'  # path to save rosbags
     cam_topic: '/tube0/image_raw'           # sets topic gui displays & tag_node subscribes to 
     cam_info_topic: '/tube0/camera_info'
-    # sonar: 'false'                                    # sonar launch boolean
+    enable_sonar: True                                    # sonar launch boolean
+    sonar_speed: 1500 # m/s
+    sonar_acoustics: True
 
     # # The following parameters are for flir camera
     # camera_type: 'blackfly_s'                         # declares camera type
